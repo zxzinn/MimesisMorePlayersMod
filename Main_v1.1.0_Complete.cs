@@ -6,7 +6,7 @@ using System.Reflection;
 using System.Collections.Generic;
 using System.Reflection.Emit;
 
-[assembly: MelonInfo(typeof(MorePlayers.MorePlayersMod), "MorePlayers", "1.4.1", "github.com/zxzinn")]
+[assembly: MelonInfo(typeof(MorePlayers.MorePlayersMod), "MorePlayers", "1.1.0", "github.com/zxzinn")]
 [assembly: MelonGame("ReLUGames", "MIMESIS")]
 
 namespace MorePlayers
@@ -18,17 +18,18 @@ namespace MorePlayers
         public override void OnInitializeMelon()
         {
             MelonLogger.Msg("=================================================");
-            MelonLogger.Msg("MorePlayers Mod v1.4.1");
+            MelonLogger.Msg("MorePlayers Mod v1.1.0 - Complete Fix");
             MelonLogger.Msg("=================================================");
             MelonLogger.Msg("Author: github.com/zxzinn");
             MelonLogger.Msg($"Max Players: {MAX_PLAYERS}");
             MelonLogger.Msg("");
+            MelonLogger.Msg("Patching ALL 4-player limit checks...");
 
             var harmony = new HarmonyLib.Harmony("com.moreplayers.mod");
             harmony.PatchAll(typeof(MorePlayersMod).Assembly);
 
-            MelonLogger.Msg("");
-            MelonLogger.Msg("All patches applied!");
+            MelonLogger.Msg("=================================================");
+            MelonLogger.Msg("All patches applied successfully!");
             MelonLogger.Msg("=================================================");
         }
     }
@@ -48,7 +49,7 @@ namespace MorePlayers
                     BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
 
                 if (method != null)
-                    MelonLogger.Msg("[✓] ServerSocket.GetMaximumClients");
+                    MelonLogger.Msg("[PATCH 1] ServerSocket.GetMaximumClients: FOUND");
 
                 return method;
             }
@@ -77,7 +78,7 @@ namespace MorePlayers
                     BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
 
                 if (method != null)
-                    MelonLogger.Msg("[✓] ServerSocket.SetMaximumClients");
+                    MelonLogger.Msg("[PATCH 2] ServerSocket.SetMaximumClients: FOUND");
 
                 return method;
             }
@@ -109,7 +110,7 @@ namespace MorePlayers
                     .FirstOrDefault();
 
                 if (ctor != null)
-                    MelonLogger.Msg("[✓] ServerSocket Constructor");
+                    MelonLogger.Msg("[PATCH 3] ServerSocket Constructor: FOUND");
 
                 return ctor;
             }
@@ -129,7 +130,7 @@ namespace MorePlayers
         }
     }
 
-    // PATCH 4: IVroom.CanEnterChannel
+    // PATCH 4: IVroom.CanEnterChannel - Remove >= 4 check
     [HarmonyPatch]
     public class IVroom_CanEnterChannel_Patch
     {
@@ -144,7 +145,7 @@ namespace MorePlayers
                     BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
 
                 if (method != null)
-                    MelonLogger.Msg("[✓] IVroom.CanEnterChannel");
+                    MelonLogger.Msg("[PATCH 4] IVroom.CanEnterChannel: FOUND");
 
                 return method;
             }
@@ -155,11 +156,15 @@ namespace MorePlayers
         {
             var codes = new List<CodeInstruction>(instructions);
 
-            for (int i = 0; i < codes.Count; i++)
+            for (int i = 0; i < codes.Count - 2; i++)
             {
+                // Find: if (_vPlayerDict.Count >= 4)
+                // Pattern: ldc.i4.4 (load 4), followed by comparison
                 if (codes[i].opcode == OpCodes.Ldc_I4_4)
                 {
+                    // Change 4 to MAX_PLAYERS
                     codes[i] = new CodeInstruction(OpCodes.Ldc_I4, MorePlayersMod.MAX_PLAYERS);
+                    MelonLogger.Msg($"[PATCH 4] Transpiled: Changed hardcoded 4 to {MorePlayersMod.MAX_PLAYERS}");
                 }
             }
 
@@ -167,76 +172,9 @@ namespace MorePlayers
         }
     }
 
-    // PATCH 5: IVroom.GetMemberCount
+    // PATCH 5: VRoomManager.EnterMaintenanceRoom - Remove >= 4 check
     [HarmonyPatch]
-    public class IVroom_GetMemberCount_Patch
-    {
-        static MethodBase TargetMethod()
-        {
-            try
-            {
-                var assembly = AppDomain.CurrentDomain.GetAssemblies()
-                    .FirstOrDefault(a => a.GetName().Name == "Assembly-CSharp");
-                var ivroomType = assembly?.GetType("IVroom");
-                var method = ivroomType?.GetMethod("GetMemberCount",
-                    BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
-
-                if (method != null)
-                    MelonLogger.Msg("[✓] IVroom.GetMemberCount");
-
-                return method;
-            }
-            catch { return null; }
-        }
-
-        static bool Prefix(ref int __result)
-        {
-            __result = 0;
-            return false;
-        }
-    }
-
-    // PATCH 6: GameSessionInfo.AddPlayerSteamID
-    [HarmonyPatch]
-    public class GameSessionInfo_AddPlayerSteamID_Patch
-    {
-        static MethodBase TargetMethod()
-        {
-            try
-            {
-                var assembly = AppDomain.CurrentDomain.GetAssemblies()
-                    .FirstOrDefault(a => a.GetName().Name == "Assembly-CSharp");
-                var type = assembly?.GetType("GameSessionInfo");
-                var method = type?.GetMethod("AddPlayerSteamID",
-                    BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
-
-                if (method != null)
-                    MelonLogger.Msg("[✓] GameSessionInfo.AddPlayerSteamID");
-
-                return method;
-            }
-            catch { return null; }
-        }
-
-        static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
-        {
-            var codes = new List<CodeInstruction>(instructions);
-
-            for (int i = 0; i < codes.Count; i++)
-            {
-                if (codes[i].opcode == OpCodes.Ldc_I4_4)
-                {
-                    codes[i] = new CodeInstruction(OpCodes.Ldc_I4, MorePlayersMod.MAX_PLAYERS);
-                }
-            }
-
-            return codes;
-        }
-    }
-
-    // PATCH 7: VRoomManager.EnterMaintenenceRoom
-    [HarmonyPatch]
-    public class VRoomManager_EnterMaintenenceRoom_Patch
+    public class VRoomManager_EnterMaintenanceRoom_Patch
     {
         static MethodBase TargetMethod()
         {
@@ -245,11 +183,11 @@ namespace MorePlayers
                 var assembly = AppDomain.CurrentDomain.GetAssemblies()
                     .FirstOrDefault(a => a.GetName().Name == "Assembly-CSharp");
                 var vroomManagerType = assembly?.GetType("VRoomManager");
-                var method = vroomManagerType?.GetMethod("EnterMaintenenceRoom",
+                var method = vroomManagerType?.GetMethod("EnterMaintenanceRoom",
                     BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
 
                 if (method != null)
-                    MelonLogger.Msg("[✓] VRoomManager.EnterMaintenenceRoom");
+                    MelonLogger.Msg("[PATCH 5] VRoomManager.EnterMaintenanceRoom: FOUND");
 
                 return method;
             }
@@ -265,6 +203,7 @@ namespace MorePlayers
                 if (codes[i].opcode == OpCodes.Ldc_I4_4)
                 {
                     codes[i] = new CodeInstruction(OpCodes.Ldc_I4, MorePlayersMod.MAX_PLAYERS);
+                    MelonLogger.Msg($"[PATCH 5] Transpiled: Changed hardcoded 4 to {MorePlayersMod.MAX_PLAYERS}");
                 }
             }
 
@@ -272,7 +211,7 @@ namespace MorePlayers
         }
     }
 
-    // PATCH 8: VRoomManager.EnterWaitingRoom
+    // PATCH 6: VRoomManager.EnterWaitingRoom - Remove >= 4 check
     [HarmonyPatch]
     public class VRoomManager_EnterWaitingRoom_Patch
     {
@@ -287,7 +226,7 @@ namespace MorePlayers
                     BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
 
                 if (method != null)
-                    MelonLogger.Msg("[✓] VRoomManager.EnterWaitingRoom");
+                    MelonLogger.Msg("[PATCH 6] VRoomManager.EnterWaitingRoom: FOUND");
 
                 return method;
             }
@@ -303,6 +242,7 @@ namespace MorePlayers
                 if (codes[i].opcode == OpCodes.Ldc_I4_4)
                 {
                     codes[i] = new CodeInstruction(OpCodes.Ldc_I4, MorePlayersMod.MAX_PLAYERS);
+                    MelonLogger.Msg($"[PATCH 6] Transpiled: Changed hardcoded 4 to {MorePlayersMod.MAX_PLAYERS}");
                 }
             }
 
@@ -310,9 +250,9 @@ namespace MorePlayers
         }
     }
 
-    // PATCH 9: VRoomManager.PendStartGame
+    // PATCH 7: VRoomManager.InitWaitingRoom - Remove == 4 check
     [HarmonyPatch]
-    public class VRoomManager_PendStartGame_Patch
+    public class VRoomManager_InitWaitingRoom_Patch
     {
         static MethodBase TargetMethod()
         {
@@ -321,11 +261,11 @@ namespace MorePlayers
                 var assembly = AppDomain.CurrentDomain.GetAssemblies()
                     .FirstOrDefault(a => a.GetName().Name == "Assembly-CSharp");
                 var vroomManagerType = assembly?.GetType("VRoomManager");
-                var method = vroomManagerType?.GetMethod("PendStartGame",
+                var method = vroomManagerType?.GetMethod("InitWaitingRoom",
                     BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
 
                 if (method != null)
-                    MelonLogger.Msg("[✓] VRoomManager.PendStartGame");
+                    MelonLogger.Msg("[PATCH 7] VRoomManager.InitWaitingRoom: FOUND");
 
                 return method;
             }
@@ -338,9 +278,10 @@ namespace MorePlayers
 
             for (int i = 0; i < codes.Count; i++)
             {
-                if (codes[i].opcode == OpCodes.Ldc_I4_3)
+                if (codes[i].opcode == OpCodes.Ldc_I4_4)
                 {
                     codes[i] = new CodeInstruction(OpCodes.Ldc_I4, MorePlayersMod.MAX_PLAYERS);
+                    MelonLogger.Msg($"[PATCH 7] Transpiled: Changed hardcoded 4 to {MorePlayersMod.MAX_PLAYERS}");
                 }
             }
 
@@ -348,83 +289,7 @@ namespace MorePlayers
         }
     }
 
-    // PATCH 10: VRoomManager.PendStartSession
-    [HarmonyPatch]
-    public class VRoomManager_PendStartSession_Patch
-    {
-        static MethodBase TargetMethod()
-        {
-            try
-            {
-                var assembly = AppDomain.CurrentDomain.GetAssemblies()
-                    .FirstOrDefault(a => a.GetName().Name == "Assembly-CSharp");
-                var vroomManagerType = assembly?.GetType("VRoomManager");
-                var method = vroomManagerType?.GetMethod("PendStartSession",
-                    BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
-
-                if (method != null)
-                    MelonLogger.Msg("[✓] VRoomManager.PendStartSession");
-
-                return method;
-            }
-            catch { return null; }
-        }
-
-        static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
-        {
-            var codes = new List<CodeInstruction>(instructions);
-
-            for (int i = 0; i < codes.Count; i++)
-            {
-                if (codes[i].opcode == OpCodes.Ldc_I4_3)
-                {
-                    codes[i] = new CodeInstruction(OpCodes.Ldc_I4, MorePlayersMod.MAX_PLAYERS);
-                }
-            }
-
-            return codes;
-        }
-    }
-
-    // PATCH 11: VRoomManager.OnFinishGame
-    [HarmonyPatch]
-    public class VRoomManager_OnFinishGame_Patch
-    {
-        static MethodBase TargetMethod()
-        {
-            try
-            {
-                var assembly = AppDomain.CurrentDomain.GetAssemblies()
-                    .FirstOrDefault(a => a.GetName().Name == "Assembly-CSharp");
-                var vroomManagerType = assembly?.GetType("VRoomManager");
-                var method = vroomManagerType?.GetMethod("OnFinishGame",
-                    BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
-
-                if (method != null)
-                    MelonLogger.Msg("[✓] VRoomManager.OnFinishGame");
-
-                return method;
-            }
-            catch { return null; }
-        }
-
-        static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
-        {
-            var codes = new List<CodeInstruction>(instructions);
-
-            for (int i = 0; i < codes.Count; i++)
-            {
-                if (codes[i].opcode == OpCodes.Ldc_I4_3)
-                {
-                    codes[i] = new CodeInstruction(OpCodes.Ldc_I4, MorePlayersMod.MAX_PLAYERS);
-                }
-            }
-
-            return codes;
-        }
-    }
-
-    // PATCH 12: CreateLobby
+    // PATCH 8: CreateLobby - Set Steam lobby max
     [HarmonyPatch(typeof(SteamInviteDispatcher), "CreateLobby")]
     public class SteamLobbyCreation_Patch
     {
@@ -432,12 +297,15 @@ namespace MorePlayers
         {
             try
             {
+                MelonLogger.Msg("[PATCH 8] CreateLobby intercepted");
+
                 var steamMatchmakingType = Type.GetType("Steamworks.SteamMatchmaking, com.rlabrecque.steamworks.net");
                 var eLobbyTypeType = Type.GetType("Steamworks.ELobbyType, com.rlabrecque.steamworks.net");
                 var playerPrefsType = Type.GetType("UnityEngine.PlayerPrefs, UnityEngine.CoreModule");
 
                 if (steamMatchmakingType == null || eLobbyTypeType == null || playerPrefsType == null)
                 {
+                    MelonLogger.Error("[PATCH 8] Failed to get required types");
                     return true;
                 }
 
@@ -448,20 +316,22 @@ namespace MorePlayers
 
                 if (createLobbyMethod == null || setIntMethod == null)
                 {
+                    MelonLogger.Error("[PATCH 8] Failed to get required methods");
                     return true;
                 }
 
-                MelonLogger.Msg($"[✓] CreateLobby: {MorePlayersMod.MAX_PLAYERS} slots");
-
+                // ELobbyType.FriendsOnly = 2
                 var friendsOnly = Enum.ToObject(eLobbyTypeType, 2);
                 createLobbyMethod.Invoke(null, new object[] { friendsOnly, MorePlayersMod.MAX_PLAYERS });
                 setIntMethod.Invoke(null, new object[] { "TempLobbyIsOpen", isOpenForRandomMatch ? 1 : 0 });
+
+                MelonLogger.Msg($"[PATCH 8] Steam lobby created with {MorePlayersMod.MAX_PLAYERS} slots!");
 
                 return false;
             }
             catch (Exception ex)
             {
-                MelonLogger.Error($"CreateLobby patch error: {ex.Message}");
+                MelonLogger.Error($"[PATCH 8] Failed: {ex.Message}");
                 return true;
             }
         }

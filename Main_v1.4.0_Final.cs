@@ -6,7 +6,7 @@ using System.Reflection;
 using System.Collections.Generic;
 using System.Reflection.Emit;
 
-[assembly: MelonInfo(typeof(MorePlayers.MorePlayersMod), "MorePlayers", "1.4.1", "github.com/zxzinn")]
+[assembly: MelonInfo(typeof(MorePlayers.MorePlayersMod), "MorePlayers", "1.4.0", "github.com/zxzinn")]
 [assembly: MelonGame("ReLUGames", "MIMESIS")]
 
 namespace MorePlayers
@@ -18,16 +18,17 @@ namespace MorePlayers
         public override void OnInitializeMelon()
         {
             MelonLogger.Msg("=================================================");
-            MelonLogger.Msg("MorePlayers Mod v1.4.1");
+            MelonLogger.Msg("MorePlayers Mod v1.4.0 - Complete Fix");
             MelonLogger.Msg("=================================================");
             MelonLogger.Msg("Author: github.com/zxzinn");
             MelonLogger.Msg($"Max Players: {MAX_PLAYERS}");
             MelonLogger.Msg("");
+            MelonLogger.Msg("Patching ALL player limit checks...");
 
             var harmony = new HarmonyLib.Harmony("com.moreplayers.mod");
             harmony.PatchAll(typeof(MorePlayersMod).Assembly);
 
-            MelonLogger.Msg("");
+            MelonLogger.Msg("=================================================");
             MelonLogger.Msg("All patches applied!");
             MelonLogger.Msg("=================================================");
         }
@@ -48,7 +49,7 @@ namespace MorePlayers
                     BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
 
                 if (method != null)
-                    MelonLogger.Msg("[✓] ServerSocket.GetMaximumClients");
+                    MelonLogger.Msg("[✓ PATCH 1] ServerSocket.GetMaximumClients");
 
                 return method;
             }
@@ -77,7 +78,7 @@ namespace MorePlayers
                     BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
 
                 if (method != null)
-                    MelonLogger.Msg("[✓] ServerSocket.SetMaximumClients");
+                    MelonLogger.Msg("[✓ PATCH 2] ServerSocket.SetMaximumClients");
 
                 return method;
             }
@@ -109,7 +110,7 @@ namespace MorePlayers
                     .FirstOrDefault();
 
                 if (ctor != null)
-                    MelonLogger.Msg("[✓] ServerSocket Constructor");
+                    MelonLogger.Msg("[✓ PATCH 3] ServerSocket Constructor");
 
                 return ctor;
             }
@@ -144,7 +145,7 @@ namespace MorePlayers
                     BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
 
                 if (method != null)
-                    MelonLogger.Msg("[✓] IVroom.CanEnterChannel");
+                    MelonLogger.Msg("[✓ PATCH 4] IVroom.CanEnterChannel");
 
                 return method;
             }
@@ -154,14 +155,19 @@ namespace MorePlayers
         static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
         {
             var codes = new List<CodeInstruction>(instructions);
+            int patchCount = 0;
 
             for (int i = 0; i < codes.Count; i++)
             {
                 if (codes[i].opcode == OpCodes.Ldc_I4_4)
                 {
                     codes[i] = new CodeInstruction(OpCodes.Ldc_I4, MorePlayersMod.MAX_PLAYERS);
+                    patchCount++;
                 }
             }
+
+            if (patchCount > 0)
+                MelonLogger.Msg($"  → Changed {patchCount}x hardcoded 4 to {MorePlayersMod.MAX_PLAYERS}");
 
             return codes;
         }
@@ -182,7 +188,7 @@ namespace MorePlayers
                     BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
 
                 if (method != null)
-                    MelonLogger.Msg("[✓] IVroom.GetMemberCount");
+                    MelonLogger.Msg("[✓ PATCH 5] IVroom.GetMemberCount");
 
                 return method;
             }
@@ -211,7 +217,7 @@ namespace MorePlayers
                     BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
 
                 if (method != null)
-                    MelonLogger.Msg("[✓] GameSessionInfo.AddPlayerSteamID");
+                    MelonLogger.Msg("[✓ PATCH 6] GameSessionInfo.AddPlayerSteamID");
 
                 return method;
             }
@@ -221,14 +227,19 @@ namespace MorePlayers
         static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
         {
             var codes = new List<CodeInstruction>(instructions);
+            int patchCount = 0;
 
             for (int i = 0; i < codes.Count; i++)
             {
                 if (codes[i].opcode == OpCodes.Ldc_I4_4)
                 {
                     codes[i] = new CodeInstruction(OpCodes.Ldc_I4, MorePlayersMod.MAX_PLAYERS);
+                    patchCount++;
                 }
             }
+
+            if (patchCount > 0)
+                MelonLogger.Msg($"  → Changed {patchCount}x hardcoded 4 to {MorePlayersMod.MAX_PLAYERS}");
 
             return codes;
         }
@@ -249,7 +260,7 @@ namespace MorePlayers
                     BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
 
                 if (method != null)
-                    MelonLogger.Msg("[✓] VRoomManager.EnterMaintenenceRoom");
+                    MelonLogger.Msg("[✓ PATCH 7] VRoomManager.EnterMaintenenceRoom");
 
                 return method;
             }
@@ -259,14 +270,19 @@ namespace MorePlayers
         static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
         {
             var codes = new List<CodeInstruction>(instructions);
+            int patchCount = 0;
 
             for (int i = 0; i < codes.Count; i++)
             {
                 if (codes[i].opcode == OpCodes.Ldc_I4_4)
                 {
                     codes[i] = new CodeInstruction(OpCodes.Ldc_I4, MorePlayersMod.MAX_PLAYERS);
+                    patchCount++;
                 }
             }
+
+            if (patchCount > 0)
+                MelonLogger.Msg($"  → Changed {patchCount}x hardcoded 4 to {MorePlayersMod.MAX_PLAYERS}");
 
             return codes;
         }
@@ -287,7 +303,7 @@ namespace MorePlayers
                     BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
 
                 if (method != null)
-                    MelonLogger.Msg("[✓] VRoomManager.EnterWaitingRoom");
+                    MelonLogger.Msg("[✓ PATCH 8] VRoomManager.EnterWaitingRoom");
 
                 return method;
             }
@@ -297,14 +313,19 @@ namespace MorePlayers
         static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
         {
             var codes = new List<CodeInstruction>(instructions);
+            int patchCount = 0;
 
             for (int i = 0; i < codes.Count; i++)
             {
                 if (codes[i].opcode == OpCodes.Ldc_I4_4)
                 {
                     codes[i] = new CodeInstruction(OpCodes.Ldc_I4, MorePlayersMod.MAX_PLAYERS);
+                    patchCount++;
                 }
             }
+
+            if (patchCount > 0)
+                MelonLogger.Msg($"  → Changed {patchCount}x hardcoded 4 to {MorePlayersMod.MAX_PLAYERS}");
 
             return codes;
         }
@@ -325,7 +346,7 @@ namespace MorePlayers
                     BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
 
                 if (method != null)
-                    MelonLogger.Msg("[✓] VRoomManager.PendStartGame");
+                    MelonLogger.Msg("[✓ PATCH 9] VRoomManager.PendStartGame");
 
                 return method;
             }
@@ -335,14 +356,20 @@ namespace MorePlayers
         static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
         {
             var codes = new List<CodeInstruction>(instructions);
+            int patchCount = 0;
 
             for (int i = 0; i < codes.Count; i++)
             {
+                // 改 > 3 為 > 999 (Ldc_I4_3)
                 if (codes[i].opcode == OpCodes.Ldc_I4_3)
                 {
                     codes[i] = new CodeInstruction(OpCodes.Ldc_I4, MorePlayersMod.MAX_PLAYERS);
+                    patchCount++;
                 }
             }
+
+            if (patchCount > 0)
+                MelonLogger.Msg($"  → Changed {patchCount}x hardcoded 3 to {MorePlayersMod.MAX_PLAYERS}");
 
             return codes;
         }
@@ -363,7 +390,7 @@ namespace MorePlayers
                     BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
 
                 if (method != null)
-                    MelonLogger.Msg("[✓] VRoomManager.PendStartSession");
+                    MelonLogger.Msg("[✓ PATCH 10] VRoomManager.PendStartSession");
 
                 return method;
             }
@@ -373,14 +400,19 @@ namespace MorePlayers
         static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
         {
             var codes = new List<CodeInstruction>(instructions);
+            int patchCount = 0;
 
             for (int i = 0; i < codes.Count; i++)
             {
                 if (codes[i].opcode == OpCodes.Ldc_I4_3)
                 {
                     codes[i] = new CodeInstruction(OpCodes.Ldc_I4, MorePlayersMod.MAX_PLAYERS);
+                    patchCount++;
                 }
             }
+
+            if (patchCount > 0)
+                MelonLogger.Msg($"  → Changed {patchCount}x hardcoded 3 to {MorePlayersMod.MAX_PLAYERS}");
 
             return codes;
         }
@@ -401,7 +433,7 @@ namespace MorePlayers
                     BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
 
                 if (method != null)
-                    MelonLogger.Msg("[✓] VRoomManager.OnFinishGame");
+                    MelonLogger.Msg("[✓ PATCH 11] VRoomManager.OnFinishGame");
 
                 return method;
             }
@@ -411,14 +443,19 @@ namespace MorePlayers
         static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
         {
             var codes = new List<CodeInstruction>(instructions);
+            int patchCount = 0;
 
             for (int i = 0; i < codes.Count; i++)
             {
                 if (codes[i].opcode == OpCodes.Ldc_I4_3)
                 {
                     codes[i] = new CodeInstruction(OpCodes.Ldc_I4, MorePlayersMod.MAX_PLAYERS);
+                    patchCount++;
                 }
             }
+
+            if (patchCount > 0)
+                MelonLogger.Msg($"  → Changed {patchCount}x hardcoded 3 to {MorePlayersMod.MAX_PLAYERS}");
 
             return codes;
         }
@@ -451,7 +488,7 @@ namespace MorePlayers
                     return true;
                 }
 
-                MelonLogger.Msg($"[✓] CreateLobby: {MorePlayersMod.MAX_PLAYERS} slots");
+                MelonLogger.Msg($"[✓ PATCH 12] Steam lobby: {MorePlayersMod.MAX_PLAYERS} slots");
 
                 var friendsOnly = Enum.ToObject(eLobbyTypeType, 2);
                 createLobbyMethod.Invoke(null, new object[] { friendsOnly, MorePlayersMod.MAX_PLAYERS });
@@ -461,7 +498,7 @@ namespace MorePlayers
             }
             catch (Exception ex)
             {
-                MelonLogger.Error($"CreateLobby patch error: {ex.Message}");
+                MelonLogger.Error($"[PATCH 12] Error: {ex.Message}");
                 return true;
             }
         }

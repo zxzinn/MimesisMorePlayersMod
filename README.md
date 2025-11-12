@@ -2,7 +2,7 @@
 
 Remove the 4-player limit in MIMESIS multiplayer sessions.
 
-![Version](https://img.shields.io/badge/version-1.0.5-blue)
+![Version](https://img.shields.io/badge/version-1.4.1-blue)
 ![Game](https://img.shields.io/badge/game-MIMESIS-purple)
 ![MelonLoader](https://img.shields.io/badge/MelonLoader-0.6.1+-green)
 ![Status](https://img.shields.io/badge/status-working-brightgreen)
@@ -276,17 +276,22 @@ If you see this, the mod is working, but there might be other limitations.
 
 4. Output will be in `Output/MorePlayers.dll`
 
-## 📝 Changelog
+## Changelog
 
-### Version 1.0.5 (Current) - UI Crash Fix! 🛡️
+### Version 1.4.1 (Current)
 
-**CRITICAL FIX:**
-- **[PATCH 11]** UI Bounds Checking - Prevents crashes with 5+ players
-  - **Problem:** UI has only 4 slots → crashes when 5+ players join
-  - **Solution:** Cyclic slot usage - 5th player uses slot 0, 6th uses slot 1, etc.
-  - **Impact:** No more crashes! Game stable with unlimited players
-- **Code Cleanup:** Removed all commented-out patches, clean code structure
-- **All Patches:** 11 total (9 core + 3 UI protection)
+Complete rewrite based on actual game code analysis:
+- 12 patches covering all player limit checks
+- Fixed for game version EA0.2.5+
+- Patches: ServerSocket (3), IVroom (2), GameSessionInfo (1), VRoomManager (5), CreateLobby (1)
+- Tested and working with 5+ players
+
+### Version 1.0.5
+
+UI Crash Fix:
+- PATCH 11: UI bounds checking prevents crashes with 5+ players
+- Cyclic slot usage for players beyond slot 4
+- Code cleanup and structure improvements
 
 ### Version 1.0.5 - Results Screen Fix! 🎯
 

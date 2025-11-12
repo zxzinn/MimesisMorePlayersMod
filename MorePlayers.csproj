@@ -153,9 +153,6 @@
         <Reference Include="Microsoft.Extensions.Primitives">
             <HintPath>$(GameAssemblyPath)\Microsoft.Extensions.Primitives.dll</HintPath>
         </Reference>
-        <Reference Include="MimicAPI">
-          <HintPath>$(PluginsPath)\MimicAPI.dll</HintPath>
-        </Reference>
         <Reference Include="Mono.Cecil">
             <HintPath>$(MelonLoaderAssemblyPath)\Mono.Cecil.dll</HintPath>
         </Reference>

@@ -1,0 +1,53 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFramework>netstandard2.1</TargetFramework>
+        <AssemblyName>MorePlayers</AssemblyName>
+        <Nullable>enable</Nullable>
+        <WarningLevel>4</WarningLevel>
+        <NoWarn>$(NoWarn);MSB3277;MSB3270</NoWarn>
+        <OutputPath>bin/Release/</OutputPath>
+        <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Compile Include="Main_v1.4.1.cs" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- MelonLoader -->
+        <Reference Include="MelonLoader">
+            <HintPath>GameAssemblies/MelonLoader/MelonLoader.dll</HintPath>
+            <Private>false</Private>
+        </Reference>
+        <Reference Include="0Harmony">
+            <HintPath>GameAssemblies/MelonLoader/0Harmony.dll</HintPath>
+            <Private>false</Private>
+        </Reference>
+
+        <!-- Game assemblies -->
+        <Reference Include="Assembly-CSharp">
+            <HintPath>GameAssemblies/Managed/Assembly-CSharp.dll</HintPath>
+            <Private>false</Private>
+        </Reference>
+
+        <!-- Unity assemblies -->
+        <Reference Include="UnityEngine.CoreModule">
+            <HintPath>GameAssemblies/Managed/UnityEngine.CoreModule.dll</HintPath>
+            <Private>false</Private>
+        </Reference>
+        <Reference Include="UnityEngine.InputLegacyModule">
+            <HintPath>GameAssemblies/Managed/UnityEngine.InputLegacyModule.dll</HintPath>
+            <Private>false</Private>
+        </Reference>
+        <Reference Include="Assembly-CSharp-firstpass">
+            <HintPath>GameAssemblies/Managed/Assembly-CSharp-firstpass.dll</HintPath>
+            <Private>false</Private>
+        </Reference>
+
+        <!-- Steamworks -->
+        <Reference Include="com.rlabrecque.steamworks.net">
+            <HintPath>GameAssemblies/Managed/com.rlabrecque.steamworks.net.dll</HintPath>
+            <Private>false</Private>
+        </Reference>
+    </ItemGroup>
+</Project>

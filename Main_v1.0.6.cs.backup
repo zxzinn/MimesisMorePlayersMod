@@ -1,0 +1,86 @@
+using MelonLoader;
+using HarmonyLib;
+using System;
+
+[assembly: MelonInfo(typeof(MorePlayers.MorePlayersMod), "MorePlayers", "1.0.6", "github.com/zxzinn")]
+[assembly: MelonGame("ReLUGames", "MIMESIS")]
+
+namespace MorePlayers
+{
+    public class MorePlayersMod : MelonMod
+    {
+        public const int MAX_PLAYERS = 999;
+
+        public override void OnInitializeMelon()
+        {
+            MelonLogger.Msg("=================================================");
+            MelonLogger.Msg("MorePlayers Mod v1.0.6 - Fixed for EA0.2.5+");
+            MelonLogger.Msg("=================================================");
+            MelonLogger.Msg("Author: github.com/zxzinn (based on Rxflex's work)");
+            MelonLogger.Msg($"Max Players: {MAX_PLAYERS}");
+            MelonLogger.Msg("");
+
+            var harmony = new HarmonyLib.Harmony("com.moreplayers.mod");
+            harmony.PatchAll(typeof(MorePlayersMod).Assembly);
+
+            MelonLogger.Msg("=================================================");
+            MelonLogger.Msg("All patches applied successfully!");
+            MelonLogger.Msg("=================================================");
+        }
+    }
+
+    // Patch the CreateLobby method to use 999 players instead of 4
+    [HarmonyPatch(typeof(SteamInviteDispatcher), "CreateLobby")]
+    public class SteamLobbyCreation_Patch
+    {
+        static bool Prefix(bool isOpenForRandomMatch)
+        {
+            try
+            {
+                // Get Steamworks types via reflection
+                var steamMatchmakingType = Type.GetType("Steamworks.SteamMatchmaking, com.rlabrecque.steamworks.net");
+                var eLobbyTypeType = Type.GetType("Steamworks.ELobbyType, com.rlabrecque.steamworks.net");
+                var playerPrefsType = Type.GetType("UnityEngine.PlayerPrefs, UnityEngine.CoreModule");
+
+                if (steamMatchmakingType == null || eLobbyTypeType == null || playerPrefsType == null)
+                {
+                    MelonLogger.Error("[MorePlayers] Failed to get required types");
+                    return true;
+                }
+
+                // Get the CreateLobby method
+                var createLobbyMethod = steamMatchmakingType.GetMethod("CreateLobby",
+                    System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
+
+                // Get PlayerPrefs.SetInt method
+                var setIntMethod = playerPrefsType.GetMethod("SetInt",
+                    System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
+
+                if (createLobbyMethod == null || setIntMethod == null)
+                {
+                    MelonLogger.Error("[MorePlayers] Failed to get required methods");
+                    return true;
+                }
+
+                // ELobbyType.FriendsOnly = 2
+                var friendsOnly = Enum.ToObject(eLobbyTypeType, 2);
+
+                // Call SteamMatchmaking.CreateLobby with 999 players
+                createLobbyMethod.Invoke(null, new object[] { friendsOnly, MorePlayersMod.MAX_PLAYERS });
+
+                // Set PlayerPrefs for random match flag
+                setIntMethod.Invoke(null, new object[] { "TempLobbyIsOpen", isOpenForRandomMatch ? 1 : 0 });
+
+                MelonLogger.Msg($"[MorePlayers] CreateLobby intercepted! Creating lobby with {MorePlayersMod.MAX_PLAYERS} slots (was 4)");
+
+                return false; // Skip original method
+            }
+            catch (Exception ex)
+            {
+                MelonLogger.Error($"[MorePlayers] Failed to patch CreateLobby: {ex.Message}");
+                MelonLogger.Error($"Stack trace: {ex.StackTrace}");
+                return true; // Run original if patch fails
+            }
+        }
+    }
+}
