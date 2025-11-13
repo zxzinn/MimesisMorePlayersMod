@@ -6,7 +6,7 @@ using System.Reflection;
 using System.Collections.Generic;
 using System.Reflection.Emit;
 
-[assembly: MelonInfo(typeof(MorePlayers.MorePlayersMod), "MorePlayers", "1.4.2", "github.com/zxzinn")]
+[assembly: MelonInfo(typeof(MorePlayers.MorePlayersMod), "MorePlayers", "1.7.7", "github.com/zxzinn")]
 [assembly: MelonGame("ReLUGames", "MIMESIS")]
 
 namespace MorePlayers
@@ -18,7 +18,7 @@ namespace MorePlayers
         public override void OnInitializeMelon()
         {
             MelonLogger.Msg("=================================================");
-            MelonLogger.Msg("MorePlayers Mod v1.4.2");
+            MelonLogger.Msg("MorePlayers Mod v1.7.7");
             MelonLogger.Msg("=================================================");
             MelonLogger.Msg("Author: github.com/zxzinn");
             MelonLogger.Msg($"Max Players: {MAX_PLAYERS}");
@@ -167,7 +167,117 @@ namespace MorePlayers
         }
     }
 
-    // PATCH 5: GameSessionInfo.AddPlayerSteamID
+    // PATCH 5: VRoomManager.EnterWaitingRoom - Use reflection to bypass check
+    [HarmonyPatch]
+    public class VRoomManager_EnterWaitingRoom_Patch
+    {
+        static MethodBase TargetMethod()
+        {
+            try
+            {
+                var assembly = AppDomain.CurrentDomain.GetAssemblies()
+                    .FirstOrDefault(a => a.GetName().Name == "Assembly-CSharp");
+                var vroomManagerType = assembly?.GetType("VRoomManager");
+                var method = vroomManagerType?.GetMethod("EnterWaitingRoom",
+                    BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
+
+                if (method != null)
+                    MelonLogger.Msg("[✓] VRoomManager.EnterWaitingRoom");
+
+                return method;
+            }
+            catch { return null; }
+        }
+
+        static void Prefix(object __instance, object context)
+        {
+            try
+            {
+                // Get VWaitingRoom
+                var vroomsField = __instance.GetType().GetField("_vrooms", BindingFlags.NonPublic | BindingFlags.Instance);
+                var vrooms = vroomsField?.GetValue(__instance) as System.Collections.IDictionary;
+
+                if (vrooms != null)
+                {
+                    foreach (var room in vrooms.Values)
+                    {
+                        if (room.GetType().Name == "VWaitingRoom")
+                        {
+                            // Set _maxPlayers to MAX_PLAYERS
+                            var maxPlayersField = room.GetType().BaseType?.GetField("_maxPlayers",
+                                BindingFlags.NonPublic | BindingFlags.Instance);
+                            if (maxPlayersField != null)
+                            {
+                                maxPlayersField.SetValue(room, MorePlayersMod.MAX_PLAYERS);
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MelonLogger.Warning($"EnterWaitingRoom Prefix error: {ex.Message}");
+            }
+        }
+    }
+
+    // PATCH 5b: VRoomManager.EnterMaintenenceRoom - Use reflection to bypass check
+    [HarmonyPatch]
+    public class VRoomManager_EnterMaintenenceRoom_Patch
+    {
+        static MethodBase TargetMethod()
+        {
+            try
+            {
+                var assembly = AppDomain.CurrentDomain.GetAssemblies()
+                    .FirstOrDefault(a => a.GetName().Name == "Assembly-CSharp");
+                var vroomManagerType = assembly?.GetType("VRoomManager");
+                var method = vroomManagerType?.GetMethod("EnterMaintenenceRoom",
+                    BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
+
+                if (method != null)
+                    MelonLogger.Msg("[✓] VRoomManager.EnterMaintenenceRoom");
+
+                return method;
+            }
+            catch { return null; }
+        }
+
+        static void Prefix(object __instance, object context)
+        {
+            try
+            {
+                // Get MaintenanceRoom
+                var vroomsField = __instance.GetType().GetField("_vrooms", BindingFlags.NonPublic | BindingFlags.Instance);
+                var vrooms = vroomsField?.GetValue(__instance) as System.Collections.IDictionary;
+
+                if (vrooms != null)
+                {
+                    foreach (var room in vrooms.Values)
+                    {
+                        if (room.GetType().Name == "MaintenanceRoom")
+                        {
+                            // Set _maxPlayers to MAX_PLAYERS
+                            var maxPlayersField = room.GetType().BaseType?.GetField("_maxPlayers",
+                                BindingFlags.NonPublic | BindingFlags.Instance);
+                            if (maxPlayersField != null)
+                            {
+                                maxPlayersField.SetValue(room, MorePlayersMod.MAX_PLAYERS);
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MelonLogger.Warning($"EnterMaintenenceRoom Prefix error: {ex.Message}");
+            }
+        }
+    }
+
+    // PATCH 6: GameSessionInfo.AddPlayerSteamID
     [HarmonyPatch]
     public class GameSessionInfo_AddPlayerSteamID_Patch
     {
@@ -205,197 +315,7 @@ namespace MorePlayers
         }
     }
 
-    // PATCH 6: VRoomManager.EnterMaintenenceRoom
-    [HarmonyPatch]
-    public class VRoomManager_EnterMaintenenceRoom_Patch
-    {
-        static MethodBase TargetMethod()
-        {
-            try
-            {
-                var assembly = AppDomain.CurrentDomain.GetAssemblies()
-                    .FirstOrDefault(a => a.GetName().Name == "Assembly-CSharp");
-                var vroomManagerType = assembly?.GetType("VRoomManager");
-                var method = vroomManagerType?.GetMethod("EnterMaintenenceRoom",
-                    BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
-
-                if (method != null)
-                    MelonLogger.Msg("[✓] VRoomManager.EnterMaintenenceRoom");
-
-                return method;
-            }
-            catch { return null; }
-        }
-
-        static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
-        {
-            var codes = new List<CodeInstruction>(instructions);
-
-            for (int i = 0; i < codes.Count; i++)
-            {
-                if (codes[i].opcode == OpCodes.Ldc_I4_4)
-                {
-                    codes[i] = new CodeInstruction(OpCodes.Ldc_I4, MorePlayersMod.MAX_PLAYERS);
-                }
-            }
-
-            return codes;
-        }
-    }
-
-    // PATCH 7: VRoomManager.EnterWaitingRoom
-    [HarmonyPatch]
-    public class VRoomManager_EnterWaitingRoom_Patch
-    {
-        static MethodBase TargetMethod()
-        {
-            try
-            {
-                var assembly = AppDomain.CurrentDomain.GetAssemblies()
-                    .FirstOrDefault(a => a.GetName().Name == "Assembly-CSharp");
-                var vroomManagerType = assembly?.GetType("VRoomManager");
-                var method = vroomManagerType?.GetMethod("EnterWaitingRoom",
-                    BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
-
-                if (method != null)
-                    MelonLogger.Msg("[✓] VRoomManager.EnterWaitingRoom");
-
-                return method;
-            }
-            catch { return null; }
-        }
-
-        static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
-        {
-            var codes = new List<CodeInstruction>(instructions);
-
-            for (int i = 0; i < codes.Count; i++)
-            {
-                if (codes[i].opcode == OpCodes.Ldc_I4_4)
-                {
-                    codes[i] = new CodeInstruction(OpCodes.Ldc_I4, MorePlayersMod.MAX_PLAYERS);
-                }
-            }
-
-            return codes;
-        }
-    }
-
-    // PATCH 8: VRoomManager.PendStartGame
-    [HarmonyPatch]
-    public class VRoomManager_PendStartGame_Patch
-    {
-        static MethodBase TargetMethod()
-        {
-            try
-            {
-                var assembly = AppDomain.CurrentDomain.GetAssemblies()
-                    .FirstOrDefault(a => a.GetName().Name == "Assembly-CSharp");
-                var vroomManagerType = assembly?.GetType("VRoomManager");
-                var method = vroomManagerType?.GetMethod("PendStartGame",
-                    BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
-
-                if (method != null)
-                    MelonLogger.Msg("[✓] VRoomManager.PendStartGame");
-
-                return method;
-            }
-            catch { return null; }
-        }
-
-        static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
-        {
-            var codes = new List<CodeInstruction>(instructions);
-
-            for (int i = 0; i < codes.Count; i++)
-            {
-                if (codes[i].opcode == OpCodes.Ldc_I4_3)
-                {
-                    codes[i] = new CodeInstruction(OpCodes.Ldc_I4, MorePlayersMod.MAX_PLAYERS);
-                }
-            }
-
-            return codes;
-        }
-    }
-
-    // PATCH 9: VRoomManager.PendStartSession
-    [HarmonyPatch]
-    public class VRoomManager_PendStartSession_Patch
-    {
-        static MethodBase TargetMethod()
-        {
-            try
-            {
-                var assembly = AppDomain.CurrentDomain.GetAssemblies()
-                    .FirstOrDefault(a => a.GetName().Name == "Assembly-CSharp");
-                var vroomManagerType = assembly?.GetType("VRoomManager");
-                var method = vroomManagerType?.GetMethod("PendStartSession",
-                    BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
-
-                if (method != null)
-                    MelonLogger.Msg("[✓] VRoomManager.PendStartSession");
-
-                return method;
-            }
-            catch { return null; }
-        }
-
-        static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
-        {
-            var codes = new List<CodeInstruction>(instructions);
-
-            for (int i = 0; i < codes.Count; i++)
-            {
-                if (codes[i].opcode == OpCodes.Ldc_I4_3)
-                {
-                    codes[i] = new CodeInstruction(OpCodes.Ldc_I4, MorePlayersMod.MAX_PLAYERS);
-                }
-            }
-
-            return codes;
-        }
-    }
-
-    // PATCH 10: VRoomManager.OnFinishGame
-    [HarmonyPatch]
-    public class VRoomManager_OnFinishGame_Patch
-    {
-        static MethodBase TargetMethod()
-        {
-            try
-            {
-                var assembly = AppDomain.CurrentDomain.GetAssemblies()
-                    .FirstOrDefault(a => a.GetName().Name == "Assembly-CSharp");
-                var vroomManagerType = assembly?.GetType("VRoomManager");
-                var method = vroomManagerType?.GetMethod("OnFinishGame",
-                    BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
-
-                if (method != null)
-                    MelonLogger.Msg("[✓] VRoomManager.OnFinishGame");
-
-                return method;
-            }
-            catch { return null; }
-        }
-
-        static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
-        {
-            var codes = new List<CodeInstruction>(instructions);
-
-            for (int i = 0; i < codes.Count; i++)
-            {
-                if (codes[i].opcode == OpCodes.Ldc_I4_3)
-                {
-                    codes[i] = new CodeInstruction(OpCodes.Ldc_I4, MorePlayersMod.MAX_PLAYERS);
-                }
-            }
-
-            return codes;
-        }
-    }
-
-    // PATCH 11: CreateLobby
+    // PATCH 7: CreateLobby
     [HarmonyPatch(typeof(SteamInviteDispatcher), "CreateLobby")]
     public class SteamLobbyCreation_Patch
     {
