@@ -6,7 +6,7 @@ using System.Reflection;
 using System.Collections.Generic;
 using System.Reflection.Emit;
 
-[assembly: MelonInfo(typeof(MorePlayers.MorePlayersMod), "MorePlayers", "1.7.7", "github.com/zxzinn")]
+[assembly: MelonInfo(typeof(MorePlayers.MorePlayersMod), "MorePlayers", "1.8.0-zxzinn", "github.com/zxzinn")]
 [assembly: MelonGame("ReLUGames", "MIMESIS")]
 
 namespace MorePlayers
@@ -18,7 +18,7 @@ namespace MorePlayers
         public override void OnInitializeMelon()
         {
             MelonLogger.Msg("=================================================");
-            MelonLogger.Msg("MorePlayers Mod v1.7.7");
+            MelonLogger.Msg("MorePlayers Mod v1.8.0-zxzinn");
             MelonLogger.Msg("=================================================");
             MelonLogger.Msg("Author: github.com/zxzinn");
             MelonLogger.Msg($"Max Players: {MAX_PLAYERS}");
@@ -129,41 +129,274 @@ namespace MorePlayers
         }
     }
 
-    // PATCH 4: IVroom.CanEnterChannel
+    // PATCH 3b: ServerSocket - All methods transpiler to replace _maximumClients field reads
     [HarmonyPatch]
-    public class IVroom_CanEnterChannel_Patch
+    public class ServerSocket_AllMethods_Transpiler
     {
-        static MethodBase TargetMethod()
+        static IEnumerable<MethodBase> TargetMethods()
         {
             try
             {
                 var assembly = AppDomain.CurrentDomain.GetAssemblies()
                     .FirstOrDefault(a => a.GetName().Name == "Assembly-CSharp");
-                var ivroomType = assembly?.GetType("IVroom");
-                var method = ivroomType?.GetMethod("CanEnterChannel",
-                    BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
+                var serverSocketType = assembly?.GetType("FishySteamworks.Server.ServerSocket");
 
-                if (method != null)
-                    MelonLogger.Msg("[✓] IVroom.CanEnterChannel");
+                if (serverSocketType == null)
+                    return new MethodBase[0];
 
-                return method;
+                var methods = serverSocketType.GetMethods(
+                    BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly)
+                    .Where(m => !m.IsAbstract && !m.IsConstructor && !m.IsGenericMethod)
+                    .ToList();
+
+                MelonLogger.Msg($"[✓] ServerSocket: Patching {methods.Count} methods with transpiler");
+                return methods;
             }
-            catch { return null; }
+            catch (Exception ex)
+            {
+                MelonLogger.Error($"ServerSocket transpiler error: {ex.Message}");
+                return new MethodBase[0];
+            }
         }
 
         static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
         {
             var codes = new List<CodeInstruction>(instructions);
 
-            for (int i = 0; i < codes.Count; i++)
+            try
             {
-                if (codes[i].opcode == OpCodes.Ldc_I4_4)
+                // Get the _maximumClients field
+                var assembly = AppDomain.CurrentDomain.GetAssemblies()
+                    .FirstOrDefault(a => a.GetName().Name == "Assembly-CSharp");
+                var serverSocketType = assembly?.GetType("FishySteamworks.Server.ServerSocket");
+                var maxClientsField = serverSocketType?.GetField("_maximumClients",
+                    BindingFlags.NonPublic | BindingFlags.Instance);
+
+                if (maxClientsField == null)
+                    return codes;
+
+                for (int i = 0; i < codes.Count; i++)
                 {
-                    codes[i] = new CodeInstruction(OpCodes.Ldc_I4, MorePlayersMod.MAX_PLAYERS);
+                    // If loading the _maximumClients field
+                    if (codes[i].opcode == OpCodes.Ldfld && codes[i].operand is System.Reflection.FieldInfo field &&
+                        field.Name == "_maximumClients")
+                    {
+                        // Replace: Pop the field value and push MAX_PLAYERS
+                        codes.InsertRange(i + 1, new[]
+                        {
+                            new CodeInstruction(OpCodes.Pop),
+                            new CodeInstruction(OpCodes.Ldc_I4, MorePlayersMod.MAX_PLAYERS)
+                        });
+                        i += 2;
+                    }
                 }
             }
+            catch { }
 
             return codes;
+        }
+    }
+
+    // PATCH 3c: GetMemberCount - Smart return based on caller
+    [HarmonyPatch]
+    public class GetMemberCount_Smart_Patch
+    {
+        static IEnumerable<MethodBase> TargetMethods()
+        {
+            try
+            {
+                var assembly = AppDomain.CurrentDomain.GetAssemblies()
+                    .FirstOrDefault(a => a.GetName().Name == "Assembly-CSharp");
+
+                var methods = new List<MethodBase>();
+
+                // Patch IVroom.GetMemberCount
+                var ivroomType = assembly?.GetType("IVroom");
+                var method = ivroomType?.GetMethod("GetMemberCount",
+                    BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
+                if (method != null)
+                {
+                    methods.Add(method);
+                    MelonLogger.Msg("[✓] IVroom.GetMemberCount (smart patch)");
+                }
+
+                return methods;
+            }
+            catch (Exception ex)
+            {
+                MelonLogger.Error($"GetMemberCount patch error: {ex.Message}");
+                return new MethodBase[0];
+            }
+        }
+
+        static bool Prefix(ref int __result, object __instance)
+        {
+            try
+            {
+                // Get the actual member count
+                var vPlayerDictField = __instance.GetType().GetField("_vPlayerDict",
+                    BindingFlags.NonPublic | BindingFlags.Instance);
+                var vPlayerDict = vPlayerDictField?.GetValue(__instance) as System.Collections.IDictionary;
+                int actualCount = vPlayerDict?.Count ?? 0;
+
+                // Check the call stack to determine context
+                var stackTrace = new System.Diagnostics.StackTrace();
+                bool isFromEnterCheck = false;
+                bool isFromSessionCount = false;
+
+                for (int i = 0; i < Math.Min(stackTrace.FrameCount, 10); i++)
+                {
+                    var frame = stackTrace.GetFrame(i);
+                    var method = frame?.GetMethod();
+                    if (method != null)
+                    {
+                        string methodName = method.Name;
+                        // Check if called from Enter room methods
+                        if (methodName.Contains("EnterWaitingRoom") ||
+                            methodName.Contains("EnterMaintenenceRoom") ||
+                            methodName.Contains("CanEnter"))
+                        {
+                            isFromEnterCheck = true;
+                            break;
+                        }
+                        // Check if called from session count
+                        if (methodName.Contains("GetSessionCount") ||
+                            methodName.Contains("GetRoomMemberCount"))
+                        {
+                            isFromSessionCount = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (isFromEnterCheck)
+                {
+                    // For enter checks, return 0 to bypass 4-player limit
+                    __result = 0;
+                    return false;
+                }
+                else if (isFromSessionCount)
+                {
+                    // For session counting, return actual count
+                    __result = actualCount;
+                    return false;
+                }
+
+                // Default: return actual count
+                __result = actualCount;
+                return false;
+            }
+            catch (Exception ex)
+            {
+                MelonLogger.Warning($"GetMemberCount Prefix error: {ex.Message}");
+                return true; // Let original method run on error
+            }
+        }
+    }
+
+    // PATCH 4: All Room CanEnterChannel - Override to use correct player count check
+    [HarmonyPatch]
+    public class AllRooms_CanEnterChannel_Patch
+    {
+        static IEnumerable<MethodBase> TargetMethods()
+        {
+            try
+            {
+                var assembly = AppDomain.CurrentDomain.GetAssemblies()
+                    .FirstOrDefault(a => a.GetName().Name == "Assembly-CSharp");
+
+                var methods = new List<MethodBase>();
+
+                // Patch VWaitingRoom.CanEnterChannel
+                var vWaitingRoomType = assembly?.GetType("VWaitingRoom");
+                var waitingMethod = vWaitingRoomType?.GetMethod("CanEnterChannel",
+                    BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
+                if (waitingMethod != null)
+                {
+                    methods.Add(waitingMethod);
+                    MelonLogger.Msg("[✓] VWaitingRoom.CanEnterChannel");
+                }
+
+                // Patch MaintenanceRoom.CanEnterChannel
+                var maintenanceRoomType = assembly?.GetType("MaintenanceRoom");
+                var maintenanceMethod = maintenanceRoomType?.GetMethod("CanEnterChannel",
+                    BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
+                if (maintenanceMethod != null)
+                {
+                    methods.Add(maintenanceMethod);
+                    MelonLogger.Msg("[✓] MaintenanceRoom.CanEnterChannel");
+                }
+
+                // Patch base IVroom.CanEnterChannel
+                var ivroomType = assembly?.GetType("IVroom");
+                var ivroomMethod = ivroomType?.GetMethod("CanEnterChannel",
+                    BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
+                if (ivroomMethod != null)
+                {
+                    methods.Add(ivroomMethod);
+                    MelonLogger.Msg("[✓] IVroom.CanEnterChannel");
+                }
+
+                return methods;
+            }
+            catch (Exception ex)
+            {
+                MelonLogger.Error($"CanEnterChannel patch error: {ex.Message}");
+                return new MethodBase[0];
+            }
+        }
+
+        static bool Prefix(ref object __result, object __instance, long playerUID)
+        {
+            try
+            {
+                // Get MsgErrorCode enum type
+                var assembly = AppDomain.CurrentDomain.GetAssemblies()
+                    .FirstOrDefault(a => a.GetName().Name.Contains("FishySteamworks") || a.GetName().Name == "Assembly-CSharp");
+                var msgErrorCodeType = assembly?.GetTypes().FirstOrDefault(t => t.Name == "MsgErrorCode");
+
+                if (msgErrorCodeType == null || !msgErrorCodeType.IsEnum)
+                    return true; // Let original method run
+
+                // Check for duplicate player
+                var vPlayerDictField = __instance.GetType().GetField("_vPlayerDict",
+                    BindingFlags.NonPublic | BindingFlags.Instance);
+                var vPlayerDict = vPlayerDictField?.GetValue(__instance) as System.Collections.IDictionary;
+
+                if (vPlayerDict != null)
+                {
+                    foreach (var player in vPlayerDict.Values)
+                    {
+                        var uidProp = player.GetType().GetProperty("UID",
+                            BindingFlags.Public | BindingFlags.Instance);
+                        if (uidProp != null)
+                        {
+                            var uid = uidProp.GetValue(player);
+                            if (uid != null && uid.Equals(playerUID))
+                            {
+                                __result = Enum.Parse(msgErrorCodeType, "DuplicatePlayer");
+                                return false; // Skip original method
+                            }
+                        }
+                    }
+
+                    // Check player count against MAX_PLAYERS instead of 4
+                    if (vPlayerDict.Count >= MorePlayersMod.MAX_PLAYERS)
+                    {
+                        __result = Enum.Parse(msgErrorCodeType, "PlayerCountExceeded");
+                        return false;
+                    }
+                }
+
+                // Return Success
+                __result = Enum.Parse(msgErrorCodeType, "Success");
+                return false; // Skip original method
+            }
+            catch (Exception ex)
+            {
+                MelonLogger.Warning($"CanEnterChannel Prefix error: {ex.Message}");
+                return true; // Let original method run on error
+            }
         }
     }
 
