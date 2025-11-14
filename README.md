@@ -23,10 +23,11 @@ This mod removes the 4-player limit in MIMESIS multiplayer.
 
 ### Option A: One-Click Installer (Recommended)
 
-1. Download **[MorePlayers-Installer.exe](https://github.com/zxzinn/MimesisMorePlayersMod/releases/latest)**
-2. Run it
-3. Click "Install"
-4. Done!
+1. Download **[MorePlayers-Installer.zip](https://github.com/zxzinn/MimesisMorePlayersMod/releases/latest)**
+2. Extract the zip file
+3. Run `MorePlayers-Installer.exe`
+4. Click "Install"
+5. Done!
 
 ### Option B: Manual Install
 

@@ -23,10 +23,11 @@
 
 ### 方案 A：一鍵安裝（推薦）
 
-1. 下載 **[MorePlayers-Installer.exe](https://github.com/zxzinn/MimesisMorePlayersMod/releases/latest)**
-2. 執行安裝程式
-3. 點擊「安裝」
-4. 完成！
+1. 下載 **[MorePlayers-Installer.zip](https://github.com/zxzinn/MimesisMorePlayersMod/releases/latest)**
+2. 解壓縮 zip 檔案
+3. 執行 `MorePlayers-Installer.exe`
+4. 點擊「安裝」
+5. 完成！
 
 ### 方案 B：手動安裝
 

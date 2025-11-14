@@ -53,7 +53,14 @@ jobs:
       run: |
         mkdir release
         copy bin\Release\netstandard2.1\MorePlayers.dll release\
-        copy installer-gui\bin\Release\net48\MorePlayers-Installer.exe release\
+
+        REM Create installer package directory
+        mkdir installer-package
+        xcopy installer-gui\bin\Release\net48\*.exe installer-package\ /Y
+        xcopy installer-gui\bin\Release\net48\MelonLoader-Files installer-package\MelonLoader-Files\ /E /I /Y
+
+        REM Create zip
+        powershell Compress-Archive -Path installer-package\* -DestinationPath release\MorePlayers-Installer.zip -Force
       shell: cmd
 
     - name: Get version from tag
@@ -66,20 +73,20 @@ jobs:
       with:
         files: |
           release/MorePlayers.dll
-          release/MorePlayers-Installer.exe
+          release/MorePlayers-Installer.zip
         body: |
           ## MIMESIS MorePlayers Enhanced ${{ steps.get_version.outputs.VERSION }}
 
           ### 📦 Downloads
 
-          - **MorePlayers-Installer.exe** - One-click installer (Recommended)
+          - **MorePlayers-Installer.zip** - One-click installer (Recommended)
           - **MorePlayers.dll** - Manual installation (requires MelonLoader)
 
           ### ✨ Installation
 
           **Easy Mode:**
-          1. Download `MorePlayers-Installer.exe`
-          2. Run it
+          1. Download `MorePlayers-Installer.zip`
+          2. Extract and run `MorePlayers-Installer.exe`
           3. Done!
 
           **Manual Mode:**
