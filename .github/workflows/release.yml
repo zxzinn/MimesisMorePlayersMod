@@ -47,13 +47,13 @@ jobs:
     - name: Build installer
       run: |
         cd installer-gui
-        dotnet publish Installer.csproj -c Release -r win-x64 --self-contained true /p:PublishSingleFile=true
+        dotnet build Installer.csproj -c Release
 
     - name: Prepare release files
       run: |
         mkdir release
         copy bin\Release\netstandard2.1\MorePlayers.dll release\
-        copy installer-gui\bin\Release\net8.0-windows\win-x64\publish\MorePlayers-Installer.exe release\
+        copy installer-gui\bin\Release\net48\MorePlayers-Installer.exe release\
       shell: cmd
 
     - name: Get version from tag
