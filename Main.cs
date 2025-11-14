@@ -5,6 +5,8 @@ using System.Linq;
 using System.Reflection;
 using System.Collections.Generic;
 using System.Reflection.Emit;
+using System.Net.Http;
+using System.Threading.Tasks;
 
 [assembly: MelonInfo(typeof(MorePlayers.MorePlayersMod), "MorePlayers", "1.8.0-zxzinn", "github.com/zxzinn")]
 [assembly: MelonGame("ReLUGames", "MIMESIS")]
@@ -14,11 +16,14 @@ namespace MorePlayers
     public class MorePlayersMod : MelonMod
     {
         public const int MAX_PLAYERS = 999;
+        private const string CURRENT_VERSION = "1.8.0-zxzinn";
+        private const string GITHUB_API_URL = "https://api.github.com/repos/zxzinn/MimesisMorePlayers-Enhanced/releases/latest";
+        private const string GITHUB_RELEASES_URL = "https://github.com/zxzinn/MimesisMorePlayers-Enhanced/releases";
 
         public override void OnInitializeMelon()
         {
             MelonLogger.Msg("=================================================");
-            MelonLogger.Msg("MorePlayers Mod v1.8.0-zxzinn");
+            MelonLogger.Msg($"MorePlayers Mod v{CURRENT_VERSION}");
             MelonLogger.Msg("=================================================");
             MelonLogger.Msg("Author: github.com/zxzinn");
             MelonLogger.Msg($"Max Players: {MAX_PLAYERS}");
@@ -30,6 +35,48 @@ namespace MorePlayers
             MelonLogger.Msg("");
             MelonLogger.Msg("All patches applied!");
             MelonLogger.Msg("=================================================");
+
+            // Check for updates asynchronously
+            Task.Run(CheckForUpdates);
+        }
+
+        private async Task CheckForUpdates()
+        {
+            try
+            {
+                using (var client = new HttpClient())
+                {
+                    client.DefaultRequestHeaders.Add("User-Agent", "MorePlayers-Mod");
+                    client.Timeout = TimeSpan.FromSeconds(5);
+
+                    var response = await client.GetStringAsync(GITHUB_API_URL);
+
+                    // Simple parsing: find "tag_name":"v1.x.x"
+                    var tagStart = response.IndexOf("\"tag_name\":\"") + 12;
+                    var tagEnd = response.IndexOf("\"", tagStart);
+                    var latestVersion = response.Substring(tagStart, tagEnd - tagStart).TrimStart('v');
+
+                    if (latestVersion != CURRENT_VERSION)
+                    {
+                        MelonLogger.Msg("");
+                        MelonLogger.Msg("=================================================");
+                        MelonLogger.Warning($"🔔 UPDATE AVAILABLE!");
+                        MelonLogger.Warning($"   Current: v{CURRENT_VERSION}");
+                        MelonLogger.Warning($"   Latest:  v{latestVersion}");
+                        MelonLogger.Msg($"   Download: {GITHUB_RELEASES_URL}");
+                        MelonLogger.Msg("=================================================");
+                        MelonLogger.Msg("");
+                    }
+                    else
+                    {
+                        MelonLogger.Msg($"✓ You're using the latest version!");
+                    }
+                }
+            }
+            catch
+            {
+                // Silently fail if update check fails (no internet, API down, etc.)
+            }
         }
     }
 
