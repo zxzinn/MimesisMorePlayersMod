@@ -54,3 +54,6 @@ Thumbs.db
 ~$*.md
 MIMESIS
 .idea.idea/
+
+# Installer embedded files (too large for git)
+installer-gui/MelonLoader-Files/

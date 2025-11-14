@@ -19,4 +19,10 @@
       <LogicalName>MorePlayers.dll</LogicalName>
     </EmbeddedResource>
   </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="MelonLoader-Files\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
 </Project>

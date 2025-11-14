@@ -18,6 +18,29 @@ jobs:
       with:
         dotnet-version: '8.0.x'
 
+    - name: Download and extract MelonLoader
+      run: |
+        # Download MelonLoader installer
+        Invoke-WebRequest -Uri "https://github.com/LavaGang/MelonLoader/releases/download/v0.6.6/MelonLoader.x64.zip" -OutFile "MelonLoader.zip"
+
+        # Extract to temp location
+        Expand-Archive -Path "MelonLoader.zip" -DestinationPath "temp-melon" -Force
+
+        # Create installer MelonLoader-Files directory
+        New-Item -ItemType Directory -Path "installer-gui/MelonLoader-Files" -Force
+
+        # Copy MelonLoader folder and version.dll
+        Copy-Item -Path "temp-melon/MelonLoader" -Destination "installer-gui/MelonLoader-Files/" -Recurse -Force
+        Copy-Item -Path "temp-melon/version.dll" -Destination "installer-gui/MelonLoader-Files/" -Force
+
+        # Verify files exist
+        if (-not (Test-Path "installer-gui/MelonLoader-Files/MelonLoader")) {
+          throw "MelonLoader directory not found after extraction"
+        }
+
+        Write-Host "MelonLoader files prepared successfully"
+      shell: pwsh
+
     - name: Build mod DLL
       run: dotnet build MorePlayers.csproj -c Release
 

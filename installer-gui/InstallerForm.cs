@@ -3,7 +3,6 @@ using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
-using System.Net.Http;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Microsoft.Win32;
@@ -20,7 +19,7 @@ namespace MorePlayersInstaller
         private Button browseButton;
         private RichTextBox logTextBox;
 
-        private const string MELONLOADER_URL = "https://github.com/LavaGang/MelonLoader/releases/download/v0.6.6/MelonLoader.Installer.exe";
+        private const string MELONLOADER_EMBEDDED_PATH = "MelonLoader-Files";
         private const string MOD_VERSION = "1.8.0-zxzinn";
 
         public InstallerForm()
@@ -235,89 +234,34 @@ namespace MorePlayersInstaller
 
             if (!Directory.Exists(melonLoaderPath))
             {
-                // Download MelonLoader
-                progressBar.Value = 20;
-                Log("⬇ Downloading MelonLoader...");
-                statusLabel.Text = "Downloading MelonLoader...";
-
-                string tempInstaller = Path.Combine(Path.GetTempPath(), "MelonLoader.Installer.exe");
-                await DownloadFile(MELONLOADER_URL, tempInstaller);
-
-                // Install MelonLoader
-                progressBar.Value = 50;
+                // Install MelonLoader from embedded files
+                progressBar.Value = 30;
                 Log("🔧 Installing MelonLoader...");
                 statusLabel.Text = "Installing MelonLoader...";
 
-                bool deleteInstaller = true;
+                string embeddedPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, MELONLOADER_EMBEDDED_PATH);
+                string embeddedMelonLoaderPath = Path.Combine(embeddedPath, "MelonLoader");
+                string embeddedVersionDll = Path.Combine(embeddedPath, "version.dll");
 
-                using (var process = new Process
+                if (!Directory.Exists(embeddedMelonLoaderPath))
                 {
-                    StartInfo = new ProcessStartInfo
-                    {
-                        FileName = tempInstaller,
-                        Arguments = $"--path \"{gamePath}\" --automated",
-                        UseShellExecute = false,
-                        CreateNoWindow = true
-                    }
-                })
-                {
-                    process.Start();
-                    await Task.Run(() => process.WaitForExit());
-
-                    if (process.ExitCode != 0 && !Directory.Exists(melonLoaderPath))
-                    {
-                        // Manual installation needed
-                        Log("⚠ Automated installation failed. Opening manual installer...");
-
-                        var manualProcess = Process.Start(tempInstaller);
-                        if (manualProcess == null)
-                        {
-                            throw new Exception("Failed to start MelonLoader installer");
-                        }
-
-                        using (manualProcess)
-                        {
-                            var result = MessageBox.Show(
-                                "Please install MelonLoader manually:\n\n" +
-                                "1. Select MIMESIS from the game list\n" +
-                                "2. Click Install\n" +
-                                "3. Click OK when done",
-                                "Manual Installation Required",
-                                MessageBoxButtons.OKCancel,
-                                MessageBoxIcon.Information
-                            );
-
-                            if (result == DialogResult.Cancel)
-                            {
-                                throw new Exception("Installation cancelled by user");
-                            }
-
-                            // Wait for manual installer to close
-                            if (!manualProcess.HasExited)
-                            {
-                                await Task.Run(() => manualProcess.WaitForExit());
-                            }
-                        }
-
-                        if (!Directory.Exists(melonLoaderPath))
-                        {
-                            throw new Exception("MelonLoader installation failed");
-                        }
-                    }
+                    throw new Exception("MelonLoader files not found in installer. Please re-download the installer.");
                 }
 
-                // Only delete if installer is not running
-                if (deleteInstaller)
+                // Copy MelonLoader directory
+                await Task.Run(() => CopyDirectory(embeddedMelonLoaderPath, melonLoaderPath));
+                Log($"✓ Copied MelonLoader folder");
+
+                // Copy version.dll
+                if (File.Exists(embeddedVersionDll))
                 {
-                    try
-                    {
-                        File.Delete(tempInstaller);
-                    }
-                    catch
-                    {
-                        // Ignore if file is still in use
-                    }
+                    string destVersionDll = Path.Combine(gamePath, "version.dll");
+                    File.Copy(embeddedVersionDll, destVersionDll, overwrite: true);
+                    Log($"✓ Copied version.dll");
                 }
+
+                progressBar.Value = 60;
+                Log("✓ MelonLoader installed successfully");
             }
             else
             {
@@ -349,18 +293,22 @@ namespace MorePlayersInstaller
             Log($"✓ Location: {Path.Combine(modsPath, "MorePlayers.dll")}");
         }
 
-        private async Task DownloadFile(string url, string outputPath)
+        private void CopyDirectory(string sourceDir, string destDir)
         {
-            using (var client = new HttpClient())
-            using (var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead))
-            {
-                response.EnsureSuccessStatusCode();
+            Directory.CreateDirectory(destDir);
 
-                using (var stream = await response.Content.ReadAsStreamAsync())
-                using (var fileStream = File.Create(outputPath))
-                {
-                    await stream.CopyToAsync(fileStream);
-                }
+            // Copy all files
+            foreach (string file in Directory.GetFiles(sourceDir))
+            {
+                string destFile = Path.Combine(destDir, Path.GetFileName(file));
+                File.Copy(file, destFile, overwrite: true);
+            }
+
+            // Copy all subdirectories recursively
+            foreach (string subDir in Directory.GetDirectories(sourceDir))
+            {
+                string destSubDir = Path.Combine(destDir, Path.GetFileName(subDir));
+                CopyDirectory(subDir, destSubDir);
             }
         }
 
