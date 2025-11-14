@@ -3,7 +3,6 @@
     <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0-windows</TargetFramework>
     <UseWindowsForms>true</UseWindowsForms>
-    <ApplicationIcon>icon.ico</ApplicationIcon>
     <AssemblyName>MorePlayers-Installer</AssemblyName>
     <Version>1.8.3</Version>
     <Authors>zxzinn</Authors>
