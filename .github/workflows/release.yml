@@ -19,12 +19,12 @@ jobs:
         dotnet-version: '6.0.x'
 
     - name: Build mod DLL
-      run: dotnet build -c Release
+      run: dotnet build MorePlayers.csproj -c Release
 
     - name: Build installer
       run: |
         cd installer-gui
-        dotnet publish -c Release -r win-x64 --self-contained true /p:PublishSingleFile=true /p:PublishTrimmed=true
+        dotnet publish Installer.csproj -c Release -r win-x64 --self-contained true /p:PublishSingleFile=true /p:PublishTrimmed=true
 
     - name: Prepare release files
       run: |
