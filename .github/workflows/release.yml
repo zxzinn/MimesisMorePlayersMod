@@ -16,7 +16,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: '6.0.x'
+        dotnet-version: '8.0.x'
 
     - name: Build mod DLL
       run: dotnet build MorePlayers.csproj -c Release
@@ -24,13 +24,13 @@ jobs:
     - name: Build installer
       run: |
         cd installer-gui
-        dotnet publish Installer.csproj -c Release -r win-x64 --self-contained true /p:PublishSingleFile=true /p:PublishTrimmed=true
+        dotnet publish Installer.csproj -c Release -r win-x64 --self-contained true /p:PublishSingleFile=true
 
     - name: Prepare release files
       run: |
         mkdir release
         copy bin\Release\netstandard2.1\MorePlayers.dll release\
-        copy installer-gui\bin\Release\net6.0-windows\win-x64\publish\MorePlayers-Installer.exe release\
+        copy installer-gui\bin\Release\net8.0-windows\win-x64\publish\MorePlayers-Installer.exe release\
       shell: cmd
 
     - name: Get version from tag
