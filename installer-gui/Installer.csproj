@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net6.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ApplicationIcon>icon.ico</ApplicationIcon>
+    <AssemblyName>MorePlayers-Installer</AssemblyName>
+    <Version>1.8.0</Version>
+    <Authors>zxzinn</Authors>
+    <Description>MIMESIS MorePlayers Enhanced Installer</Description>
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>true</SelfContained>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <PublishReadyToRun>true</PublishReadyToRun>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="..\bin\Release\netstandard2.1\MorePlayers.dll">
+      <LogicalName>MorePlayers.dll</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+</Project>
