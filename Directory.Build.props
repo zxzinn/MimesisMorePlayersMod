@@ -3,8 +3,11 @@
     <PropertyGroup>
         <!-- Game paths -->
         <GamePath Condition="'$(GamePath)' == ''">$(MIMESIS_GAME_PATH)</GamePath>
-        <GameAssemblyPath>$(GamePath)\MIMESIS_Data\Managed</GameAssemblyPath>
-        <BepInExAssemblyPath>$(GamePath)\MelonLoader\net6</BepInExAssemblyPath>
+        <!-- Use local lib folder if game path not available (CI environment) -->
+        <GameAssemblyPath Condition="'$(GamePath)' != '' AND Exists('$(GamePath)\MIMESIS_Data\Managed')">$(GamePath)\MIMESIS_Data\Managed</GameAssemblyPath>
+        <GameAssemblyPath Condition="'$(GamePath)' == '' OR !Exists('$(GamePath)\MIMESIS_Data\Managed')">$(MSBuildProjectDirectory)\lib</GameAssemblyPath>
+        <MelonLoaderAssemblyPath Condition="'$(GamePath)' != '' AND Exists('$(GamePath)\MelonLoader\net6')">$(GamePath)\MelonLoader\net6</MelonLoaderAssemblyPath>
+        <MelonLoaderAssemblyPath Condition="'$(GamePath)' == '' OR !Exists('$(GamePath)\MelonLoader\net6')">$(MSBuildProjectDirectory)\lib</MelonLoaderAssemblyPath>
         <PluginsPath>$(GamePath)\Mods</PluginsPath>
     </PropertyGroup>
     <PropertyGroup>
