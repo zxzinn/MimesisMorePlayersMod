@@ -269,7 +269,13 @@ namespace MorePlayersInstaller
                         // Manual installation needed
                         Log("⚠ Automated installation failed. Opening manual installer...");
 
-                        using (var manualProcess = Process.Start(tempInstaller))
+                        var manualProcess = Process.Start(tempInstaller);
+                        if (manualProcess == null)
+                        {
+                            throw new Exception("Failed to start MelonLoader installer");
+                        }
+
+                        using (manualProcess)
                         {
                             var result = MessageBox.Show(
                                 "Please install MelonLoader manually:\n\n" +
@@ -287,7 +293,7 @@ namespace MorePlayersInstaller
                             }
 
                             // Wait for manual installer to close
-                            if (manualProcess != null && !manualProcess.HasExited)
+                            if (!manualProcess.HasExited)
                             {
                                 await Task.Run(() => manualProcess.WaitForExit());
                             }

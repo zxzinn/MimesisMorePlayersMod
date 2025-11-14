@@ -52,8 +52,13 @@ namespace MorePlayers
                     var response = await client.GetStringAsync(GITHUB_API_URL);
 
                     // Simple parsing: find "tag_name":"v1.x.x"
-                    var tagStart = response.IndexOf("\"tag_name\":\"") + 12;
+                    var tagStart = response.IndexOf("\"tag_name\":\"");
+                    if (tagStart == -1) return; // Pattern not found
+
+                    tagStart += 12;
                     var tagEnd = response.IndexOf("\"", tagStart);
+                    if (tagEnd == -1) return; // End quote not found
+
                     var latestVersion = response.Substring(tagStart, tagEnd - tagStart).TrimStart('v');
 
                     if (latestVersion != CURRENT_VERSION)
