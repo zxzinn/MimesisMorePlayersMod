@@ -6,6 +6,11 @@
         <NoWarn>$(NoWarn);MSB3277;MSB3270</NoWarn>
     </PropertyGroup>
     <ItemGroup>
+        <Compile Remove="installer-gui\**" />
+        <EmbeddedResource Remove="installer-gui\**" />
+        <None Remove="installer-gui\**" />
+    </ItemGroup>
+    <ItemGroup>
         <Reference Include="0Harmony">
             <HintPath>$(MelonLoaderAssemblyPath)\0Harmony.dll</HintPath>
         </Reference>
