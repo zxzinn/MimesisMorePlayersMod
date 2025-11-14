@@ -52,3 +52,5 @@ Thumbs.db
 
 # Documentation artifacts
 ~$*.md
+MIMESIS
+.idea

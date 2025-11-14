@@ -8,7 +8,7 @@ using System.Reflection.Emit;
 using System.Net.Http;
 using System.Threading.Tasks;
 
-[assembly: MelonInfo(typeof(MorePlayers.MorePlayersMod), "MorePlayers", "1.8.0-zxzinn", "github.com/zxzinn")]
+[assembly: MelonInfo(typeof(MorePlayers.MorePlayersMod), "MorePlayers", "1.8.2", "github.com/zxzinn")]
 [assembly: MelonGame("ReLUGames", "MIMESIS")]
 
 namespace MorePlayers
@@ -16,9 +16,9 @@ namespace MorePlayers
     public class MorePlayersMod : MelonMod
     {
         public const int MAX_PLAYERS = 999;
-        private const string CURRENT_VERSION = "1.8.0-zxzinn";
-        private const string GITHUB_API_URL = "https://api.github.com/repos/zxzinn/MimesisMorePlayers-Enhanced/releases/latest";
-        private const string GITHUB_RELEASES_URL = "https://github.com/zxzinn/MimesisMorePlayers-Enhanced/releases";
+        private const string CURRENT_VERSION = "1.8.2";
+        private const string GITHUB_API_URL = "https://api.github.com/repos/zxzinn/MimesisMorePlayersMod/releases/latest";
+        private const string GITHUB_RELEASES_URL = "https://github.com/zxzinn/MimesisMorePlayersMod/releases";
 
         public override void OnInitializeMelon()
         {
