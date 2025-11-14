@@ -248,7 +248,9 @@ namespace MorePlayersInstaller
                 Log("🔧 Installing MelonLoader...");
                 statusLabel.Text = "Installing MelonLoader...";
 
-                var process = new Process
+                bool deleteInstaller = true;
+
+                using (var process = new Process
                 {
                     StartInfo = new ProcessStartInfo
                     {
@@ -257,39 +259,59 @@ namespace MorePlayersInstaller
                         UseShellExecute = false,
                         CreateNoWindow = true
                     }
-                };
-
-                process.Start();
-                await Task.Run(() => process.WaitForExit());
-
-                if (process.ExitCode != 0 && !Directory.Exists(melonLoaderPath))
+                })
                 {
-                    // Manual installation needed
-                    Log("⚠ Automated installation failed. Opening manual installer...");
-                    Process.Start(tempInstaller);
+                    process.Start();
+                    await Task.Run(() => process.WaitForExit());
 
-                    var result = MessageBox.Show(
-                        "Please install MelonLoader manually:\n\n" +
-                        "1. Select MIMESIS from the game list\n" +
-                        "2. Click Install\n" +
-                        "3. Click OK when done",
-                        "Manual Installation Required",
-                        MessageBoxButtons.OKCancel,
-                        MessageBoxIcon.Information
-                    );
-
-                    if (result == DialogResult.Cancel)
+                    if (process.ExitCode != 0 && !Directory.Exists(melonLoaderPath))
                     {
-                        throw new Exception("Installation cancelled by user");
-                    }
+                        // Manual installation needed
+                        Log("⚠ Automated installation failed. Opening manual installer...");
 
-                    if (!Directory.Exists(melonLoaderPath))
-                    {
-                        throw new Exception("MelonLoader installation failed");
+                        using (var manualProcess = Process.Start(tempInstaller))
+                        {
+                            var result = MessageBox.Show(
+                                "Please install MelonLoader manually:\n\n" +
+                                "1. Select MIMESIS from the game list\n" +
+                                "2. Click Install\n" +
+                                "3. Click OK when done",
+                                "Manual Installation Required",
+                                MessageBoxButtons.OKCancel,
+                                MessageBoxIcon.Information
+                            );
+
+                            if (result == DialogResult.Cancel)
+                            {
+                                throw new Exception("Installation cancelled by user");
+                            }
+
+                            // Wait for manual installer to close
+                            if (manualProcess != null && !manualProcess.HasExited)
+                            {
+                                await Task.Run(() => manualProcess.WaitForExit());
+                            }
+                        }
+
+                        if (!Directory.Exists(melonLoaderPath))
+                        {
+                            throw new Exception("MelonLoader installation failed");
+                        }
                     }
                 }
 
-                File.Delete(tempInstaller);
+                // Only delete if installer is not running
+                if (deleteInstaller)
+                {
+                    try
+                    {
+                        File.Delete(tempInstaller);
+                    }
+                    catch
+                    {
+                        // Ignore if file is still in use
+                    }
+                }
             }
             else
             {
@@ -324,8 +346,8 @@ namespace MorePlayersInstaller
         private async Task DownloadFile(string url, string outputPath)
         {
             using (var client = new HttpClient())
+            using (var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead))
             {
-                var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
                 response.EnsureSuccessStatusCode();
 
                 using (var stream = await response.Content.ReadAsStreamAsync())
