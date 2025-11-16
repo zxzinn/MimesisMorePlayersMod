@@ -282,6 +282,14 @@ namespace MorePlayersInstaller
                     throw new Exception("Mod DLL not found in installer");
 
                 string modPath = Path.Combine(modsPath, "MorePlayers.dll");
+
+                // Delete existing file if it exists
+                if (File.Exists(modPath))
+                {
+                    Log("⚠ Removing existing MorePlayers.dll...");
+                    File.Delete(modPath);
+                }
+
                 using (var fileStream = File.Create(modPath))
                 {
                     await stream.CopyToAsync(fileStream);
